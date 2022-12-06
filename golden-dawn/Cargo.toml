@@ -1,0 +1,13 @@
+[package]
+name = "golden-dawn"
+version = "1.1.1"
+edition = "2021"
+build = "build.rs"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4"
+serde = "1.0"
+serde_derive = "1.0"
+toml = "0.5"
+junction = "0.2"

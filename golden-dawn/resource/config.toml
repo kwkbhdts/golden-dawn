@@ -1,0 +1,4 @@
+parent_dir = 'T:\workspace\daily\today'
+date_format = '%Y-%m-%d'
+days_to_move = 14
+days_to_remove = 100
