@@ -1,0 +1,13 @@
+# goldden-dawn config file
+
+# The directory path of the daily directories' parent.
+parent_dir_path = 'T:\workspace\daily\today'
+
+# The date format of daily directories.
+date_format = '%Y-%m-%d'
+
+# The number of days until move a daily directory to "old" directory.
+days_to_move = 14
+
+# The number of days until remove a daily directory.
+days_to_remove = 100
