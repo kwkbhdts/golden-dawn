@@ -4,7 +4,9 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
-use chrono::{Local, NaiveDate};
+use chrono::{Local, NaiveDate, Days};
+use fs_extra::dir;
+use super::error_util;
 
 /// Daily directory
 #[derive(Debug)]
@@ -54,8 +56,32 @@ impl<'a> DailyDirectory<'a> {
     }
 
     /// Create a directory of this DailyDirectory.
-    pub fn create(&self) -> io::Result<()> {
-        fs::create_dir_all(&self.create_dir_path())
+    pub fn create(
+        &self,
+        template_dir_path: &Path,
+        previous_dir_junction_name: &String
+    ) -> error_util::Result<()> {
+        let dir_path = self.create_dir_path();
+        if dir_path.exists() {
+            return Ok(());
+        }
+        fs::create_dir_all(&dir_path)?;
+
+        // Copyt template files.
+        let mut copy_options = dir::CopyOptions::new();
+        copy_options.copy_inside = true;
+        copy_options.content_only = true;
+        dir::copy(template_dir_path, &dir_path, &copy_options)?;
+
+        // Create a junction to a previous date directory.
+        if let Some(previous_dir_path) = self.create_previous_date_dir_path() {
+            if previous_dir_path.exists() {
+                let junction_path = dir_path.join(previous_dir_junction_name);
+                junction::create(previous_dir_path, junction_path)?;
+            }
+        }
+
+        Ok(())
     }
 
     /// Create a junction of this DailyDirectory.
@@ -90,6 +116,13 @@ impl<'a> DailyDirectory<'a> {
     pub fn create_dir_path(&self) -> PathBuf {
         let dir_name = self.date.format(self.date_format).to_string();
         self.parent_dir_path.join(dir_name)
+    }
+
+    /// Create a dir path of this DailyDirectory.
+    pub fn create_previous_date_dir_path(&self) -> Option<PathBuf> {
+        let previous_date = self.date.checked_sub_days(Days::new(1))?;
+        let dir_name = previous_date.format(self.date_format).to_string();
+        Some(self.parent_dir_path.join(dir_name))
     }
 
     // Create a DailyDirectory from a DirEntry.

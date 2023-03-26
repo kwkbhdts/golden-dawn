@@ -2,6 +2,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::Path;
 use serde::Deserialize;
 
 /// Config data
@@ -31,7 +32,7 @@ impl Config {
     /// 
     /// # Params:
     /// file_path : A file path of a config toml file.
-    pub fn from_file(file_path: &String) -> Result<Config, Box<dyn Error>> {
+    pub fn from_file(file_path: &Path) -> Result<Config, Box<dyn Error>> {
         let mut f = File::open(file_path)?;
         let mut contents = String::new();
         f.read_to_string(&mut contents)?;

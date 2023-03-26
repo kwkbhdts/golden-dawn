@@ -1,30 +1,39 @@
+use std::env;
 use std::fs;
 use std::path::Path;
 
 use config::Config;
 use daily_directory::DailyDirectory;
 
-mod debug;
+mod debug_util;
+mod error_util;
 mod config;
 mod daily_directory;
 
-
 const CONFIG_FILE_PATH: &str = "resource/config.toml";
+const TEMPLATE_DIR_PATH: &str = "template";
+const PREVIOUS_DIR_JUNCTION_NAME: &str = "yesterday";
 const TODAY_JUNCTION: &str = "today";
 const OLD_DIR_NAME: &str = "old";
 
 fn main() {
     // Load the config file.
-    let config = Config::from_file(&CONFIG_FILE_PATH.to_string())
+    let exe_file_path = env::current_exe()
+        .expect("Failed to get the exe file path.");
+    let exe_dir_path = exe_file_path.parent()
+        .expect("Failed to get the exe directory path.");
+    let config_file_path = exe_dir_path.join(CONFIG_FILE_PATH);
+    let config = Config::from_file(&config_file_path)
         .expect("Failed to load a config file.");
     debug!(println!("config = {:?}", config));
 
     // Create a directory of today.
     let parent_dir_path = Path::new(&config.parent_dir_path);
     let date_format = &config.date_format;
+    let template_dir_path = exe_dir_path.join(TEMPLATE_DIR_PATH);
     let dir_of_today = DailyDirectory::direcory_of_today(parent_dir_path, date_format);
     debug!(println!("dir_of_today = {:?}", dir_of_today));
-    dir_of_today.create()
+    dir_of_today.create(&template_dir_path, &PREVIOUS_DIR_JUNCTION_NAME.to_string())
         .expect("Failed to create a directory of today.");
 
     // Create a junction of today.
@@ -60,5 +69,4 @@ fn main() {
             x.remove().expect("Failed to remove a old daily directory.");
         }
     }
-
 }

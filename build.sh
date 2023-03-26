@@ -8,6 +8,7 @@ cargo build --release
 mkdir -p bin
 cp -f target/release/golden-dawn.exe bin/golden-dawn.exe
 cp -rf resource bin/
+mkdir -p bin/template
 
 cargo doc
 
