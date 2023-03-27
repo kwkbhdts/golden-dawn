@@ -20,9 +20,13 @@ jobs:
         run: |
           cargo install cross
 
-      - name: Build with cargo
+      - name: List build targets
         run: |
-          cargo build --release
+          rustup target list
+
+      - name: Build with cross
+        run: |
+          cross build --target x86_64-pc-windows-gnu --release
 
       - name: Prepare to archive build artifacts.
         run: |
