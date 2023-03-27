@@ -31,6 +31,11 @@ jobs:
       - name: Prepare to archive build artifacts.
         run: |
           mkdir artifacts
+          ls target
+          ls target/x86_64-pc-windows-gnu/release
+          mv target/x86_64-pc-windows-gnu/release/golden-dawn.exe artifacts/
+          mv resource artifacts/
+          mv template artifacts/
 
       - name: Archive build artifacts.
         uses: actions/upload-artifact@v3
