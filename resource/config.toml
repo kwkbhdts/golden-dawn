@@ -1,7 +1,7 @@
 # goldden-dawn config file
 
 # The directory path of the daily directories' parent.
-parent_dir_path = 'T:\workspace\daily\2023-03-26\test'
+parent_dir_path = 'T:\workspace\daily'
 
 # The date format of daily directories.
 date_format = '%Y-%m-%d'
