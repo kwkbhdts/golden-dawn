@@ -1,0 +1,45 @@
+name: GitHub Actions of golden-dawn
+run-name: GitHub Actions of golden-dawn
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+#    env:
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+
+      - name: Get rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install cross
+        run: |
+          cargo install cross
+
+      - name: List build targets
+        run: |
+          rustup target list
+
+      - name: Build with cross
+        run: |
+          cross build --target x86_64-pc-windows-gnu --release
+
+      - name: Prepare to archive build artifacts.
+        run: |
+          mkdir artifacts
+          ls target
+          ls target/x86_64-pc-windows-gnu/release
+          mv target/x86_64-pc-windows-gnu/release/golden-dawn.exe artifacts/
+          mv resource artifacts/
+          mv template artifacts/
+
+      - name: Archive build artifacts.
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: |
+            artifacts
