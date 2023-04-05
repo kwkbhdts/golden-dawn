@@ -25,7 +25,7 @@ impl<'a> DailyDirectory<'a> {
         DailyDirectory {
             parent_dir_path: parent_dir_path,
             date_format: date_format,
-            date: Local::now().naive_utc().date(),
+            date: Local::now().naive_local().date(),
         }
     }
 
@@ -50,7 +50,7 @@ impl<'a> DailyDirectory<'a> {
         if days_to_old == 0 {
             return false;
         }
-        let today = Local::now().naive_utc().date();
+        let today = Local::now().naive_local().date();
         let elapsed_days = (today - self.date).num_days();
         elapsed_days >= (days_to_old as i64)
     }
