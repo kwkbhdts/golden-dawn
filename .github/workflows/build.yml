@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository files
         uses: actions/checkout@v4
 
-      - name: dBuild for Linux
+      - name: Build for Linux
         run: cross build --release --target x86_64-unknown-linux-gnu
 
       - name: Build for Windows
