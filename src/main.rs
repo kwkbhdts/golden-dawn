@@ -1,3 +1,6 @@
+//! golden-dawn : Daily Directory Maker
+
+/// The entry point
 fn main() {
-    println!("Hello, world!");
+    golden_dawn::main()
 }
