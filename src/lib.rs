@@ -1,7 +1,6 @@
 //! golden-dawn : Daily Directory Maker
 
 // Standard libraries ------------------
-use std::fs::remove_file;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
@@ -34,8 +33,8 @@ pub fn main() {
         }
     };
 
-    // Update "today" symbolic link
-    match update_today_symbolic_link(&today_dir_path) {
+    // Update "today" link
+    match update_today_link(&today_dir_path) {
         Ok(_) => (),
         Err(e) => {
             log::error!("{}", e);
@@ -53,7 +52,7 @@ fn get_dir_name_of(date: NaiveDate) -> String {
 ///
 /// # Returns
 ///
-/// It return parent dir path of daily directories and "today" symbolic link.
+/// It return parent dir path of daily directories and "today" link.
 ///
 /// # TODO
 ///
@@ -100,9 +99,9 @@ fn create_today_dir(parent_dir_path: &PathBuf) -> Result<PathBuf, String> {
     };
 }
 
-//. Get "today" symbolic link path
-fn get_today_symbolic_link_path(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
-    log::debug!("get_today_symbolic_link_path start");
+//. Get "today" link path
+fn get_today_link_path(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
+    log::debug!("get_today_link_path start");
 
     let parent_dir_path = match today_dir_path.parent() {
         Some(path) => path.to_path_buf(),
@@ -113,15 +112,17 @@ fn get_today_symbolic_link_path(today_dir_path: &PathBuf) -> Result<PathBuf, Str
     return Ok(today_link_path);
 }
 
-/// Update "today" symbolic link
+/// Update "today" link
 ///
 /// If an old link exists, it removes that beforehand.
+/// Linux version create "today" symbolic link.
 ///
 #[cfg(target_os = "linux")]
-fn update_today_symbolic_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
-    log::debug!("update_today_symbolic_link (linux) start");
+fn update_today_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
+    log::debug!("update_today_link (linux) start");
+    use std::fs::remove_file;
 
-    let link_path = get_today_symbolic_link_path(today_dir_path)?;
+    let link_path = get_today_link_path(today_dir_path)?;
     if link_path.exists() {
         match remove_file(&link_path) {
             Ok(_) => (),
@@ -130,38 +131,63 @@ fn update_today_symbolic_link(today_dir_path: &PathBuf) -> Result<PathBuf, Strin
     }
     // Wait 1 second before link creation.
     thread::sleep(Duration::from_secs(1));
-    return create_today_symbolic_link(today_dir_path);
+    return create_today_link(today_dir_path);
 }
 
-/// Create "today" symbolic link
+/// Create "today" link
+/// 
+/// Linux version create "today" symbolic link.
+/// 
 #[cfg(target_os = "linux")]
-fn create_today_symbolic_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
-    log::debug!("create_today_symbolic_link (linux) start");
+fn create_today_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
+    log::debug!("create_today_link (linux) start");
     use std::os::unix::fs::symlink;
 
-    let today_link_path = get_today_symbolic_link_path(today_dir_path)?;
+    let today_link_path = get_today_link_path(today_dir_path)?;
     return match symlink(&today_dir_path, &today_link_path) {
         Ok(_) => Ok(today_link_path),
         Err(e) => Err(e.to_string()),
     };
 }
-/// Create "today" symbolic link
+
+/// Update "today" link
+///
+/// If an old link exists, it removes that beforehand.
+/// Windows version create "today" junction.
+///
 #[cfg(target_os = "windows")]
-fn create_today_symbolic_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
-    use std::os::windows::fs::symlink_dir;
+fn update_today_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
+    use std::fs::remove_dir;
 
-    // Get the parent dir path
-    let parent_dir_path = match today_dir_path.parent() {
-        Some(path) => path.to_path_buf(),
-        None => return Err("Couldn't get the parent directory path.".to_string()),
-    };
+    log::debug!("update_today_link (windows) start");
 
-    // Create "today" symbolic link
-    let mut today_link_path = parent_dir_path.clone();
-    today_link_path.push("today");
-    return match symlink_dir(today_dir_path, today_link_path) {
-        Ok(_) => today_link_path,
-        Err(e) => e.to_string(),
+    let link_path = get_today_link_path(today_dir_path)?;
+    if link_path.exists() {
+        // Change "today" junction to a just direcotry beforehand.
+        match junction::delete(&link_path) {
+            Ok(_) => (),
+            Err(e) => return Err(e.to_string()),
+        }
+        // Remove
+        match remove_dir(&link_path) {
+            Ok(_) => (),
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    // Wait 1 second before link creation.
+    thread::sleep(Duration::from_secs(1));
+    return create_today_link(today_dir_path);
+}
+
+/// Create "today" link
+#[cfg(target_os = "windows")]
+fn create_today_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
+    log::debug!("create_today_link (windows) start");
+
+    let today_link_path = get_today_link_path(today_dir_path)?;
+    return match junction::create(&today_dir_path, &today_link_path) {
+        Ok(_) => Ok(today_link_path),
+        Err(e) => Err(e.to_string()),
     };
 }
 // -----------------------------------------------------------------------------
