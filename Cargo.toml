@@ -1,9 +1,10 @@
 [package]
 name = "golden-dawn"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
 log = "0.4.22"
 env_logger = "0.11.5"
+junction = "1.1.0"
