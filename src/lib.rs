@@ -1,6 +1,7 @@
 //! golden-dawn : Daily Directory Maker
 
 // Standard libraries ------------------
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
@@ -41,6 +42,16 @@ pub fn main() {
             return;
         }
     }
+
+    // Move old directories
+    match move_old_dirs(&parent_dir_path, 7) {
+        Ok(_) => (),
+        Err(e) => {
+            log::error!("{}", e);
+            return;
+        }
+    }
+
 }
 
 /// It converts a NaiveDate to a direcory name string.
@@ -61,6 +72,69 @@ fn get_dir_name_of(date: NaiveDate) -> String {
 fn get_parent_dir_path() -> Result<PathBuf, String> {
     let current_dir = Path::new(".").to_path_buf();
     return Ok(current_dir);
+}
+
+/// Find old directoris
+///
+/// # Returns:
+/// 
+/// It returns paths of old direcotories exceed threshold.
+/// 
+/// 
+fn find_old_dirs(dir_about: &PathBuf, threshold_days: u32) -> Result<Vec<PathBuf>, String> {
+    log::debug!("find_old_dirs start");
+
+    // List entries of dir_about
+    let read_dir_result = match fs::read_dir(dir_about) {
+        Ok(result) => result,
+        Err(e) => {
+            log::error!("read_dir failed.");
+            return Err(e.to_string())
+        }
+    };
+
+    // Vec to return
+    let mut old_dir_list = Vec::<PathBuf>::new();
+
+    // Push directories enough old.
+    for result_item in read_dir_result {
+        let dir_entry = match result_item {
+            Ok(item) => item,
+            Err(e) => {
+                log::error!("Failed to get a DirEntry.");
+                return Err(e.to_string())
+            }
+        };
+
+        if !dir_entry.path().is_dir() {
+            continue;
+        }
+
+        let dir_name_os_str = dir_entry.file_name();
+        let dir_name = match dir_name_os_str.to_str() {
+            Some(name) => name,
+            None => {
+                log::warn!("Failed to get dir_name.");
+                continue
+            }
+        };
+
+        let date_of_dir = match NaiveDate::parse_from_str(dir_name, "%Y-%m-%d") {
+            Ok(data) => data,
+            Err(_) => {
+                log::warn!("NaiveDate::parse_from_str failed. ({})", dir_name);
+                continue
+            }
+        };
+
+        let today = Local::now().date_naive();
+        let naive_date_diff = today - date_of_dir;
+        if naive_date_diff.num_days() > threshold_days as i64 {
+            old_dir_list.push(dir_entry.path().clone())
+        }
+    }
+
+    return Ok(old_dir_list);
 }
 
 /// Create a directory of today
@@ -90,8 +164,7 @@ fn create_today_dir(parent_dir_path: &PathBuf) -> Result<PathBuf, String> {
         Ok(_) => Ok(target_dir_path),
         Err(e) => {
             let error_message = format!(
-                "Couldn't create the directory. ({}) : {}",
-                target_dir_path.to_str().unwrap(),
+                "Couldn't create the directory of today. error:{}",
                 e.to_string()
             );
             Err(error_message)
@@ -188,6 +261,49 @@ fn create_today_link(today_dir_path: &PathBuf) -> Result<PathBuf, String> {
     return match junction::create(&today_dir_path, &today_link_path) {
         Ok(_) => Ok(today_link_path),
         Err(e) => Err(e.to_string()),
+    };
+}
+
+/// Move old directories in "old" directory.
+fn move_old_dirs(parent_dir_path: &PathBuf, threshold_days: u32) -> Result<(), String>{
+    let old_dir = create_old_dir(parent_dir_path)?;
+    let old_dirs = find_old_dirs(parent_dir_path, threshold_days)?;
+    for old_dir_from in old_dirs.into_iter() {
+        let mut old_dir_to = old_dir.clone();
+        let old_dir_src_name = match old_dir_from.file_name() {
+            Some(name) => name,
+            None => return Err("old_dir_from.file_name() failed".to_string())
+        };
+        old_dir_to.push(old_dir_src_name);
+        match fs::rename(old_dir_from, old_dir_to) {
+            Ok(_) => (),
+            Err(e) => {
+                let log_message = format!(
+                    "Moving an old direcoty failed. error:{}",
+                    e.to_string());
+                return Err(log_message);
+            }
+        };
+    }
+    return Ok(());
+}
+
+/// Create "old" directory
+fn create_old_dir(parent_dir_path: &PathBuf) -> Result<PathBuf, String> {
+
+    let mut old_dir_path = parent_dir_path.clone();
+    old_dir_path.push("old");
+
+    // Create target directory
+    return match util::create_dir(&old_dir_path) {
+        Ok(_) => Ok(old_dir_path),
+        Err(e) => {
+            let error_message = format!(
+                "Couldn't create the \"old\" directory. error:{}",
+                e.to_string()
+            );
+            Err(error_message)
+        }
     };
 }
 // -----------------------------------------------------------------------------
