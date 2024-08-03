@@ -52,6 +52,15 @@ pub fn main() {
         }
     }
 
+    // Remove very old directories
+    match remove_very_old_dirs(&parent_dir_path, 100) {
+        Ok(_) => (),
+        Err(e) => {
+            log::error!("{}", e);
+            return;
+        }
+    }
+
 }
 
 /// It converts a NaiveDate to a direcory name string.
@@ -306,6 +315,19 @@ fn create_old_dir(parent_dir_path: &PathBuf) -> Result<PathBuf, String> {
         }
     };
 }
+
+/// Remove very old directories from "old" directory.
+fn remove_very_old_dirs(old_dir_path: &PathBuf, threshold_days: u32) -> Result<(), String> {
+    let very_old_dirs = find_old_dirs(old_dir_path, threshold_days)?;
+    for very_old_dir in very_old_dirs.into_iter() {
+        match fs::remove_dir_all(very_old_dir) {
+            Ok(_) => (),
+            Err(e) => return Err(e.to_string())
+        }
+    }
+    return Ok(());
+}
+
 // -----------------------------------------------------------------------------
 /// Tests class
 // -----------------------------------------------------------------------------
