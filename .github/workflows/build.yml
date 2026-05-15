@@ -27,14 +27,14 @@ jobs:
         run: find ./
 
       - name: Save the binary file for Linux
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: For Linux
           path: ./target/x86_64-unknown-linux-gnu/release/golden-dawn
           retention-days: 7
 
       - name: Save the binary file for Windows
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: For Windows
           path: ./target/x86_64-pc-windows-gnu/release/golden-dawn.exe 
