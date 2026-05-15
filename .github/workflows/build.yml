@@ -17,9 +17,6 @@ jobs:
       - name: Build for Linux
         run: cross build --release --target x86_64-unknown-linux-gnu
 
-      - name: Build for Windows
-        run: cross build --release --target x86_64-pc-windows-gnu
-
       - name: Test for Linux
         run: cross test --target x86_64-unknown-linux-gnu
 
@@ -31,11 +28,4 @@ jobs:
         with:
           name: For Linux
           path: ./target/x86_64-unknown-linux-gnu/release/golden-dawn
-          retention-days: 7
-
-      - name: Save the binary file for Windows
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: For Windows
-          path: ./target/x86_64-pc-windows-gnu/release/golden-dawn.exe 
           retention-days: 7
