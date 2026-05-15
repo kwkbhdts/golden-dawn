@@ -53,7 +53,8 @@ pub fn main() {
     }
 
     // Remove very old directories
-    match remove_very_old_dirs(&parent_dir_path, 100) {
+    let old_dir_path = parent_dir_path.join("old");
+    match remove_very_old_dirs(&old_dir_path, 100) {
         Ok(_) => (),
         Err(e) => {
             log::error!("{}", e);
