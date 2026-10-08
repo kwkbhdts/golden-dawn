@@ -40,15 +40,30 @@ jobs:
         run: cargo +1.99.0 fmt -- --check
       - name: Build release
         run: cargo +1.99.0 build --locked --release --target ${{ matrix.target }}
-      - name: Check executable path
+      - name: Check executable path and local date
         run: |
           binary='./target/${{ matrix.target }}/release/${{ matrix.binary }}'
-          output=$("$binary")
+          # OSのローカル日付を返す。日付コマンドが失敗すると非0で終了する。
+          os_date() {
+            if [[ "$RUNNER_OS" == 'Windows' ]]; then
+              pwsh -NoProfile -Command 'Get-Date -Format yyyy-MM-dd' | tr -d '\r'
+            else
+              date +%F
+            fi
+          }
+          date_before=$(os_date)
+          output=$("$binary" | tr -d '\r')
+          date_after=$(os_date)
           printf '%s\n' "$output"
+          mapfile -t lines <<< "$output"
+          test "${#lines[@]}" -eq 2
+          executable_path=${lines[0]}
+          local_date=${lines[1]}
           if [[ "$RUNNER_OS" == 'Windows' ]]; then
-            output=$(cygpath -u "$output")
+            executable_path=$(cygpath -u "$executable_path")
           fi
-          test "$output" -ef "$binary"
+          test "$executable_path" -ef "$binary"
+          test "$local_date" = "$date_before" || test "$local_date" = "$date_after"
       - name: Inspect Linux runtime dependencies
         if: runner.os == 'Linux'
         run: |

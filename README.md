@@ -2,7 +2,7 @@
 
 Rustを一歩ずつ理解しながら、小さい変更を積み重ねるプロジェクトです。
 
-現在の実装は、起動された実行ファイル自身のパスを取得して1行表示することです。
+現在の実装は、実行ファイル自身のパスと現在のローカル日付（`YYYY-MM-DD`）を各1行表示することです。
 Linuxのクラウド環境でビルド・実行・整形確認済みです。
 Windows/LinuxのCIを用意しています。Windows実機では未確認です。
 
@@ -20,15 +20,20 @@ cargo run
 cargo fmt -- --check
 ```
 
-プログラムの出力例（Linux。配置場所によって変わります）：
+プログラムの出力例（Linux。パスと日付は配置場所・実行時刻によって変わります）：
 
 ```text
 /path/to/golden-dawn/target/debug/golden-dawn
+2026-10-08
 ```
 
 `executable_path()`は`std::env::current_exe()`で取得したパスを`PathBuf`で返し、取得失敗を`Result`でmainへ伝えます。
 作業ディレクトリ（cwd）や起動引数`argv[0]`の文字列をそのまま返す関数ではありません。
 パスの表現やシンボリックリンク経由で起動した場合の返値はOSによって異なります。[公式APIの説明](https://doc.rust-lang.org/std/env/fn.current_exe.html)
+
+`current_date()`は`chrono::Local::now()`で取得した現在のローカル時刻から日付文字列を返します。
+日付は実行環境のOSタイムゾーンに基づき、4時を起点とする補正は行いません。[chronoのLocal](https://docs.rs/chrono/latest/chrono/offset/struct.Local.html#method.now)
+直接追加する依存はchrono 0.4.45（デフォルト機能を無効にし、`clock`のみ有効）です。推移依存を含む版は`Cargo.lock`で管理します。
 
 ## Windows/Linuxのビルド
 
@@ -62,11 +67,12 @@ cargo build --locked --release --target x86_64-pc-windows-msvc
 ## CIと確認範囲
 
 [Buildワークフロー](https://github.com/kwkbhdts/golden-dawn/actions/workflows/build.yml)は、`main`/`dev`へのpushと、それらに向けたPRで実行します。
-公開リポジトリの標準GitHub-hosted runner（Ubuntu 24.04・Windows Server 2022）を使い、Rust 1.99.0で整形確認、`--locked`のreleaseビルドを行い、表示されたパスが生成した実行ファイルを指すことを確認します。
+公開リポジトリの標準GitHub-hosted runner（Ubuntu 24.04・Windows Server 2022）を使い、Rust 1.99.0で整形確認、`--locked`のreleaseビルドを行い、表示されたパスとローカル日付を確認します。
+パスが生成した実行ファイルを指し、日付が実行前後に取得したOSローカル日付のどちらかと一致することを確認し、日付跨ぎを許容します。
 Windowsは`dumpbin`で直接インポートするDLLを調べ、CRTランタイムDLLがあれば失敗させます。Linuxは動的ライブラリと要求するglibc版をログに表示します。
 各OSの実行ファイルを3日間のCI成果物として保存します。Linuxの成果物は展開後に実行権限の付与が必要になる場合があります。
 
-Windows runnerにはVC++ランタイムがあるため、実行成功だけでは再頒布ランタイム不要の証明になりません。DLL検査は現在の標準ライブラリだけのプログラムの直接インポート確認であり、Windows実機やランタイム未導入PCでの実行は未確認です。
+Windows runnerにはVC++ランタイムがあるため、実行成功だけでは再頒布ランタイム不要の証明になりません。DLL検査は現在のプログラムの直接インポート確認であり、Windows実機やランタイム未導入PCでの実行は未確認です。
 Windows 10以降がRustターゲットの対象ですが、CIで確認するOSはWindows Server 2022のみです。
 LinuxはUbuntu 24.04のCIとクラウド環境での確認に限ります。生成したバイナリにはビルド環境由来のglibc要件があるため、古いglibc環境やAlpineなどのmusl環境での互換性は保証しません。
 他のCPUアーキテクチャも未確認です。[Rustの対応プラットフォーム](https://doc.rust-lang.org/rustc/platform-support.html)
