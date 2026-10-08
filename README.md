@@ -2,7 +2,7 @@
 
 Rustを一歩ずつ理解しながら、小さい変更を積み重ねるプロジェクトです。
 
-現在の実装は、`Hello, world!`を1行表示することだけです。
+現在の実装は、起動された実行ファイル自身のパスを取得して1行表示することです。
 Linuxのクラウド環境でビルド・実行・整形確認済みです。
 Windows/LinuxのCIを用意しています。Windows実機では未確認です。
 
@@ -20,11 +20,15 @@ cargo run
 cargo fmt -- --check
 ```
 
-プログラムの出力：
+プログラムの出力例（Linux。配置場所によって変わります）：
 
 ```text
-Hello, world!
+/path/to/golden-dawn/target/debug/golden-dawn
 ```
+
+`executable_path()`は`std::env::current_exe()`で取得したパスを`PathBuf`で返し、取得失敗を`Result`でmainへ伝えます。
+作業ディレクトリ（cwd）や起動引数`argv[0]`の文字列をそのまま返す関数ではありません。
+パスの表現やシンボリックリンク経由で起動した場合の返値はOSによって異なります。[公式APIの説明](https://doc.rust-lang.org/std/env/fn.current_exe.html)
 
 ## Windows/Linuxのビルド
 
@@ -58,11 +62,11 @@ cargo build --locked --release --target x86_64-pc-windows-msvc
 ## CIと確認範囲
 
 [Buildワークフロー](https://github.com/kwkbhdts/golden-dawn/actions/workflows/build.yml)は、`main`/`dev`へのpushと、それらに向けたPRで実行します。
-公開リポジトリの標準GitHub-hosted runner（Ubuntu 24.04・Windows Server 2022）を使い、Rust 1.99.0で整形確認、`--locked`のreleaseビルド、実バイナリの`Hello, world!`出力確認を行います。
+公開リポジトリの標準GitHub-hosted runner（Ubuntu 24.04・Windows Server 2022）を使い、Rust 1.99.0で整形確認、`--locked`のreleaseビルドを行い、表示されたパスが生成した実行ファイルを指すことを確認します。
 Windowsは`dumpbin`で直接インポートするDLLを調べ、CRTランタイムDLLがあれば失敗させます。Linuxは動的ライブラリと要求するglibc版をログに表示します。
 各OSの実行ファイルを3日間のCI成果物として保存します。Linuxの成果物は展開後に実行権限の付与が必要になる場合があります。
 
-Windows runnerにはVC++ランタイムがあるため、実行成功だけでは再頒布ランタイム不要の証明になりません。DLL検査は現在の依存なしHelloWorldの直接インポート確認であり、Windows実機やランタイム未導入PCでの実行は未確認です。
+Windows runnerにはVC++ランタイムがあるため、実行成功だけでは再頒布ランタイム不要の証明になりません。DLL検査は現在の標準ライブラリだけのプログラムの直接インポート確認であり、Windows実機やランタイム未導入PCでの実行は未確認です。
 Windows 10以降がRustターゲットの対象ですが、CIで確認するOSはWindows Server 2022のみです。
 LinuxはUbuntu 24.04のCIとクラウド環境での確認に限ります。生成したバイナリにはビルド環境由来のglibc要件があるため、古いglibc環境やAlpineなどのmusl環境での互換性は保証しません。
 他のCPUアーキテクチャも未確認です。[Rustの対応プラットフォーム](https://doc.rust-lang.org/rustc/platform-support.html)
